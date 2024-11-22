@@ -41,7 +41,7 @@ if st.button("Ссылки для проверки"):
     st.write("https://cdnn21.img.ria.ru/images/07e6/03/18/1779925111_0:197:3258:2030_1920x1080_80_0_0_dff6319c6d3c660563ba773e8a1353d4.jpg")
 
 # Модель и веса
-model_path = "../weights/last.pt"
+model_path = "models/Yolov8_face.pt"
 model = YOLO(model_path)
 
 # Выбор типа загрузки

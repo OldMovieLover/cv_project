@@ -69,10 +69,12 @@ def overlay_mask_on_image(img, mask):
     mask = np.expand_dims(mask, axis=-1)  # Добавляем размерность для совместимости с изображением
     mask = np.repeat(mask, 3, axis=-1)  # Преобразуем маску в трехканальную (для RGB)
 
-    # Копируем изображение и заменяем пиксели на черные там, где маска равна 0
+    # Создаем копию исходного изображения
     overlay = np.copy(img)
-    overlay[mask == 0] = 0  # Закрашиваем пиксели на черные там, где маска равна 0
-    
+
+    # Находим пиксели, где маска равна 0, и заменяем их на черный цвет
+    overlay[mask == 0] = [0, 0, 0]  # Заменяем на черный цвет (RGB)
+
     return overlay
 
 # Интерфейс Streamlit
@@ -127,13 +129,19 @@ if st.button("Предсказать"):
         elapsed_time = end_time - start_time
         st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
     elif url:
+        start_time = time.time()
         try:
             img_array = preprocess_image(img)  # Предобработка изображения из URL
             predicted_mask = predict_segmentation(img_array)  # Предсказание маски
             overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски
             st.image(overlayed_img, caption=f"Изображение с маской", use_container_width=True, clamp=True)
             st.image(predicted_mask, caption=f"Предсказанная маска", use_container_width=True, clamp=True)
+            
         except Exception as e:
             st.error(f"Ошибка при предсказании: {e}")
+            
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
     else:
         st.warning("Пожалуйста, загрузите изображения.")

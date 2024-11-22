@@ -1,3 +1,4 @@
 import streamlit as st
 
-st.write("Hello, world!")
+st.title("Hello, world!")
+st.write("Технические работы, по всем вопросам к Алекснадре")

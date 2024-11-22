@@ -127,8 +127,8 @@ if st.button("Предсказать"):
             img_array = preprocess_image(img)  # Предобработка изображения из URL
             predicted_mask = predict_segmentation(img_array)  # Предсказание маски
             overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски
-            st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True, clamp=True)
-            st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
+            st.image(overlayed_img, caption=f"Изображение с маской", use_container_width=True, clamp=True)
+            st.image(predicted_mask, caption=f"Предсказанная маска", use_container_width=True, clamp=True)
         except Exception as e:
             st.error(f"Ошибка при предсказании: {e}")
     else:

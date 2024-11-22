@@ -8,7 +8,7 @@ import time
 import matplotlib.pyplot as plt
 
 # Загрузка предобученной модели YOLO
-model = YOLO("models/Yolov8_ships.pt")  # Укажите путь к предобученной модели
+model = YOLO("models/Yolo8_ships.pt")  # Укажите путь к предобученной модели
 
 # Путь к директории со статистикой
 stats_dir = "images/Yolov8_ships"  # Укажите путь к вашей папке

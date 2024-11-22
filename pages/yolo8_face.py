@@ -92,18 +92,10 @@ if images:
         # Показ детекции
         st.image(annotated_image, caption=f"Результат детекции {idx + 1} с порогом {confidence_threshold:.2f}", use_container_width=True)
 
-        # Кнопку для размытия
-        if st.button(f"Размыть лица на изображении {idx + 1}", key=f"blur_{idx}"):
-            # Создаём копию изображения
-            blurred_image = image_np.copy()
+        # Кнопка для размытия всего изображения
+        if st.button(f"Размыть всё изображение {idx + 1}", key=f"blur_{idx}"):
+            # Создаём копию изображения и размываем все
+            blurred_image = cv2.GaussianBlur(image_np, (51, 51), 30)
 
-            # Получаем координаты боксов
-            for box in results[0].boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0]) 
-                face = blurred_image[y1:y2, x1:x2] 
-                blurred_face = cv2.GaussianBlur(face, (51, 51), 30) 
-                blurred_image[y1:y2, x1:x2] = blurred_face  
-
-            # Показ результата с размытыми лицами
-            st.image(blurred_image, caption=f"Изображение {idx + 1} с размытыми лицами", use_container_width=True)
-
+            # Показ результата с размытым изображением
+            st.image(blurred_image, caption=f"Изображение {idx + 1} с размытым фоном", use_container_width=True)

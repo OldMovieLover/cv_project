@@ -10,6 +10,7 @@ from tensorflow.keras.saving import register_keras_serializable
 import os
 
 # Выводим статус доступности GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 st.write("GPU is", "available" if tf.config.list_physical_devices('GPU') else "NOT AVAILABLE")
 
 # Получаем абсолютный путь к модели, начиная от текущего скрипта
@@ -67,6 +68,7 @@ def overlay_mask_on_image(img, mask):
     mask = np.expand_dims(mask, axis=-1)  # Добавляем размерность
     mask = np.repeat(mask, 3, axis=-1)  # Делаем маску трехканальной
     overlay = np.where(mask > 0.5, mask * 0.5 + img * 0.5, img)  # Наложение маски
+    overlay = np.clip(overlay, 0, 1)  # Ограничиваем значения в диапазоне [0, 1]
     return overlay
 
 # Интерфейс Streamlit
@@ -115,7 +117,7 @@ if st.button("Предсказать"):
             img_array = preprocess_image(img)  # Предобработка изображения
             predicted_mask = predict_segmentation(img_array)  # Предсказание маски
             overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски на изображение
-            st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True)
+            st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True, clamp=True)
             st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -125,8 +127,8 @@ if st.button("Предсказать"):
             img_array = preprocess_image(img)  # Предобработка изображения из URL
             predicted_mask = predict_segmentation(img_array)  # Предсказание маски
             overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски
-            st.image(overlayed_img, caption="Изображение с маской", use_container_width=True)
-            st.image(predicted_mask, caption="Предсказанная маска", use_container_width=True, clamp=True)
+            st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True, clamp=True)
+            st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
         except Exception as e:
             st.error(f"Ошибка при предсказании: {e}")
     else:

@@ -11,6 +11,9 @@ from tensorflow.keras.saving import register_keras_serializable
 # Выводим статус доступности GPU
 st.write("GPU is", "available" if tf.config.list_physical_devices('GPU') else "NOT AVAILABLE")
 
+# Получаем абсолютный путь к модели, начиная от текущего скрипта
+model_path = os.path.join(os.path.dirname(__file__), '../models/deeplabv3.keras')
+
 @register_keras_serializable()
 def iou_coef(y_true, y_pred, smooth=1):
     intersection = tf.reduce_sum(tf.abs(y_true * y_pred), axis=[1, 2, 3])  # intersection
@@ -21,7 +24,7 @@ def iou_coef(y_true, y_pred, smooth=1):
 # Функция для загрузки модели
 def load_model():
     try:
-        model = tf.keras.models.load_model('models/deeplabv3.keras')  # Укажите путь к модели
+        model = tf.keras.models.load_model(model_path)  # Укажите путь к модели
         st.success("Модель успешно загружена.")
         return model
     except Exception as e:

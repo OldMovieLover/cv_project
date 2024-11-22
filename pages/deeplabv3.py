@@ -64,37 +64,21 @@ def predict_segmentation(img_array):
     predicted_mask = prediction[0, :, :, 0]  # Предполагаем, что модель возвращает маску для одного канала
     return predicted_mask
 
-def overlay_mask_on_image(img, mask):
-    # Убедимся, что размеры маски и изображения совпадают
-    if img.shape[:2] != mask.shape[:2]:
-        raise ValueError("Размеры маски и изображения не совпадают.")
-
-    # Создаем копию изображения, чтобы не изменять оригинал
-    img_copy = np.copy(img)
-
-    # Преобразуем маску в бинарную (0 - черное, 1 - белое)
-    binary_mask = (mask > 0.5).astype(np.uint8)
-
-    # Применяем маску: где маска 0 (черное), закрашиваем пиксели черным цветом
-    img_copy[binary_mask == 0] = [0, 0, 0]
-
-    return img_copy
-
 # Интерфейс Streamlit
 st.title("Сегментация изображений с использованием обученной модели DeeplabV3")
 
-# Статистика
+# Статистика модели
 st.header("Статистика модели")
 with st.expander("Показать статистику модели", expanded=False):
     st.write("F1 Score:")
     st.image("images/deeplabv3/F1_comparison.png", caption="График F1", use_container_width=True)
     st.write("Accuracy:")
-    st.image("images/deeplabv3/accuracy_comparison.png", caption="График PR curve", use_container_width=True)
+    st.image("images/deeplabv3/accuracy_comparison.png", caption="График Accuracy", use_container_width=True)
     st.write("Loss:")
-    st.image("images/deeplabv3/loss_comparison.png", caption="График PR curve", use_container_width=True)
+    st.image("images/deeplabv3/loss_comparison.png", caption="График Loss", use_container_width=True)
     st.write("IoU:")
-    st.image("images/deeplabv3/iou_coef_comparison.png", caption="График PR curve", use_container_width=True)
-    st.write("Precision")
+    st.image("images/deeplabv3/iou_coef_comparison.png", caption="График IoU", use_container_width=True)
+    st.write("Precision:")
     st.image("images/deeplabv3/precision_comparison.png", caption="График Precision", use_container_width=True)
     st.write("Recall:")
     st.image("images/deeplabv3/recall_comparison.png", caption="График Recall", use_container_width=True)
@@ -104,6 +88,8 @@ image_option = st.radio(
     "Выберите способ загрузки изображения:",
     ("Загрузить изображения из файлов", "Загрузить изображение по URL")
 )
+
+images = []  # Список для хранения изображений
 
 if image_option == "Загрузить изображения из файлов":
     uploaded_files = st.file_uploader("Выберите изображения...", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
@@ -115,55 +101,30 @@ if image_option == "Загрузить изображения из файлов"
 elif image_option == "Загрузить изображение по URL":
     url = st.text_input("Введите URL изображения:")
     if url:
-        uploaded_files = None
         try:
             img = load_image_from_url(url)  # Загружаем изображение по URL
+            images = [img]
             st.image(img, caption="Изображение из URL", use_container_width=True)
         except Exception as e:
             st.error(f"Не удалось загрузить изображение. Ошибка: {e}")
 
 # Кнопка предсказания
 if st.button("Предсказать"):
-    if uploaded_files or url:
+    if images:
         start_time = time.time()  # Засекаем время начала предсказания
         
-        if uploaded_files:
-            for i, img in enumerate(images):
-                img_array = preprocess_image(img)
-                predicted_mask = predict_segmentation(img_array)
-                
-                # Преобразуем предсказанную маску в размер оригинального изображения
-                predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
-                predicted_mask_resized = predicted_mask_resized.resize(img.size)
-                predicted_mask = np.array(predicted_mask_resized) / 255.0
-                
-                # Выводим предсказанную маску
-                st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
-        
-        elif url:
-            try:
-                # Загружаем изображение по URL
-                img_array = load_image_from_url(url)
-                st.image(img_array, caption="Изображение из URL", use_container_width=True)
-                
-                # Предобрабатываем и предсказываем
-                preprocessed_img = preprocess_image(img_array)
-                predicted_mask = predict_segmentation(preprocessed_img)
-                
-                # Преобразуем предсказанную маску в размер оригинального изображения
-                predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
-                predicted_mask_resized = predicted_mask_resized.resize(img_array.shape[:2][::-1])  # Изменяем размер маски под изображение
-                predicted_mask = np.array(predicted_mask_resized) / 255.0
-                
-                # Выводим предсказанную маску
-                st.image(predicted_mask, caption="Предсказанная маска из URL", use_container_width=True, clamp=True)
+        for i, img in enumerate(images):
+            img_array = preprocess_image(img)
+            predicted_mask = predict_segmentation(img_array)
             
-            except Exception as e:
-                st.error(f"Ошибка при обработке изображения из URL: {e}")
+            # Преобразуем предсказанную маску в размер оригинального изображения
+            predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
+            predicted_mask_resized = predicted_mask_resized.resize(img.size)
+            
+            # Выводим предсказанную маску
+            st.image(predicted_mask_resized, caption=f"Предсказанная маска {i+1}", use_container_width=True)
         
-        end_time = time.time()  # Засекаем время окончания предсказания
-        elapsed_time = end_time - start_time
+        elapsed_time = time.time() - start_time
         st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
-    
     else:
         st.warning("Пожалуйста, загрузите изображения.")

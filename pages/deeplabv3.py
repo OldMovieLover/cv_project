@@ -98,7 +98,7 @@ elif image_option == "Загрузить изображение по URL":
     if url:
         uploaded_files = None
         try:
-img = load_image_from_url(url)  # Загружаем изображение по URL
+            img = load_image_from_url(url)  # Загружаем изображение по URL
             st.image(img, caption="Изображение из URL", use_container_width=True)
         except Exception as e:
             st.error(f"Не удалось загрузить изображение. Ошибка: {e}")

@@ -7,6 +7,7 @@ import requests
 from io import BytesIO
 import time
 from tensorflow.keras.saving import register_keras_serializable
+import os
 
 # Выводим статус доступности GPU
 st.write("GPU is", "available" if tf.config.list_physical_devices('GPU') else "NOT AVAILABLE")

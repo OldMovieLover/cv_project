@@ -64,19 +64,21 @@ def predict_segmentation(img_array):
     predicted_mask = prediction[0, :, :, 0]  # Предполагаем, что модель возвращает маску для одного канала
     return predicted_mask
 
-# Функция для наложения маски с черным фоном на изображение
 def overlay_mask_on_image(img, mask):
-    # Убедимся, что маска и изображение имеют одинаковую размерность
-    mask = np.expand_dims(mask, axis=-1)  # Добавляем размерность для совместимости с изображением
-    mask = np.repeat(mask, 3, axis=-1)  # Преобразуем маску в трехканальную (для RGB)
+    # Убедимся, что размеры маски и изображения совпадают
+    if img.shape[:2] != mask.shape[:2]:
+        raise ValueError("Размеры маски и изображения не совпадают.")
 
-    # Создаем копию исходного изображения
-    overlay = np.copy(img)
+    # Создаем копию изображения, чтобы не изменять оригинал
+    img_copy = np.copy(img)
 
-    # Находим пиксели, где маска равна 0, и заменяем их на черный цвет
-    overlay[mask == 0] = [0, 0, 0]  # Заменяем на черный цвет (RGB)
+    # Преобразуем маску в бинарную (0 - черное, 1 - белое)
+    binary_mask = (mask > 0.5).astype(np.uint8)
 
-    return overlay
+    # Применяем маску: где маска 0 (черное), закрашиваем пиксели черным цветом
+    img_copy[binary_mask == 0] = [0, 0, 0]
+
+    return img_copy
 
 # Интерфейс Streamlit
 st.title("Сегментация изображений с использованием обученной модели DeeplabV3")
@@ -122,31 +124,50 @@ elif image_option == "Загрузить изображение по URL":
 
 # Кнопка предсказания
 if st.button("Предсказать"):
-    if uploaded_files:
-        start_time = time.time()
-        for i, img in enumerate(images):
-            img_array = preprocess_image(img)  # Предобработка изображения
-            predicted_mask = predict_segmentation(img_array)  # Предсказание маски
-            overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски на изображение
-            st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True, clamp=True)
-            st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
-        end_time = time.time()
+    if uploaded_files or url:
+        start_time = time.time()  # Засекаем время начала предсказания
+        
+        if uploaded_files:
+            for i, img in enumerate(images):
+                img_array = preprocess_image(img)
+                predicted_mask = predict_segmentation(img_array)
+                
+                # Преобразуем предсказанную маску в размер оригинального изображения
+                predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
+                predicted_mask_resized = predicted_mask_resized.resize(img.size)
+                predicted_mask = np.array(predicted_mask_resized) / 255.0
+
+                overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)
+                
+                st.image(overlayed_img, caption=f"Изображение с наложенной маской {i+1}", use_container_width=True)
+                st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
+        
+        elif url:
+            try:
+                # Загружаем изображение по URL
+                img_array = load_image_from_url(url)
+                st.image(img_array, caption="Изображение из URL", use_container_width=True)
+                
+                # Предобрабатываем и предсказываем
+                preprocessed_img = preprocess_image(img_array)
+                predicted_mask = predict_segmentation(preprocessed_img)
+                
+                # Преобразуем предсказанную маску в размер оригинального изображения
+                predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
+                predicted_mask_resized = predicted_mask_resized.resize(img_array.shape[:2][::-1])  # Изменяем размер маски под изображение
+                predicted_mask = np.array(predicted_mask_resized) / 255.0
+                
+                overlayed_img = overlay_mask_on_image(img_array, predicted_mask)
+                
+                st.image(overlayed_img, caption="Изображение с наложенной маской из URL", use_container_width=True)
+                st.image(predicted_mask, caption="Предсказанная маска из URL", use_container_width=True, clamp=True)
+            
+            except Exception as e:
+                st.error(f"Ошибка при обработке изображения из URL: {e}")
+        
+        end_time = time.time()  # Засекаем время окончания предсказания
         elapsed_time = end_time - start_time
         st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
-    elif url:
-        start_time = time.time()
-        try:
-            img_array = preprocess_image(img)  # Предобработка изображения из URL
-            predicted_mask = predict_segmentation(img_array)  # Предсказание маски
-            overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски
-            st.image(overlayed_img, caption=f"Изображение с маской", use_container_width=True, clamp=True)
-            st.image(predicted_mask, caption=f"Предсказанная маска", use_container_width=True, clamp=True)
-            
-        except Exception as e:
-            st.error(f"Ошибка при предсказании: {e}")
-            
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
+    
     else:
         st.warning("Пожалуйста, загрузите изображения.")

@@ -136,10 +136,8 @@ if st.button("Предсказать"):
                 predicted_mask_resized = Image.fromarray((predicted_mask * 255).astype(np.uint8))
                 predicted_mask_resized = predicted_mask_resized.resize(img.size)
                 predicted_mask = np.array(predicted_mask_resized) / 255.0
-
-                overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)
                 
-                st.image(overlayed_img, caption=f"Изображение с наложенной маской {i+1}", use_container_width=True)
+                # Выводим предсказанную маску
                 st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
         
         elif url:
@@ -157,9 +155,7 @@ if st.button("Предсказать"):
                 predicted_mask_resized = predicted_mask_resized.resize(img_array.shape[:2][::-1])  # Изменяем размер маски под изображение
                 predicted_mask = np.array(predicted_mask_resized) / 255.0
                 
-                overlayed_img = overlay_mask_on_image(img_array, predicted_mask)
-                
-                st.image(overlayed_img, caption="Изображение с наложенной маской из URL", use_container_width=True)
+                # Выводим предсказанную маску
                 st.image(predicted_mask, caption="Предсказанная маска из URL", use_container_width=True, clamp=True)
             
             except Exception as e:

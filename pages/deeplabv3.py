@@ -1,29 +1,15 @@
 import streamlit as st
 import tensorflow as tf
-import os
-from tensorflow.keras.saving import register_keras_serializable
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 import requests
 from io import BytesIO
 import time
-
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-#tf.config.list_physical_devices('GPU')
+from tensorflow.keras.saving import register_keras_serializable
 
 # Выводим статус доступности GPU
 st.write("GPU is", "available" if tf.config.list_physical_devices('GPU') else "NOT AVAILABLE")
-
-# Включение/отключение GPU через боковую панель
-use_gpu = st.checkbox("Использовать GPU", value=True)
-
-# Если GPU выключен, скрываем его от TensorFlow
-if not use_gpu:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    st.warning("Использование GPU отключено. Используется только CPU.")
-else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Предполагаем, что у вас только один GPU
 
 @register_keras_serializable()
 def iou_coef(y_true, y_pred, smooth=1):
@@ -32,15 +18,9 @@ def iou_coef(y_true, y_pred, smooth=1):
     iou = tf.reduce_mean((intersection + smooth) / (union + smooth), axis=0)
     return iou
 
-# Функция для загрузки модели с учетом использования GPU/CPU
-def load_model(use_gpu):
+# Функция для загрузки модели
+def load_model():
     try:
-        if not use_gpu:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Отключаем GPU
-        else:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Включаем GPU, если оно доступно
-
-        # Загрузка модели
         model = tf.keras.models.load_model('models/deeplabv3.keras')  # Укажите путь к модели
         st.success("Модель успешно загружена.")
         return model
@@ -48,15 +28,8 @@ def load_model(use_gpu):
         st.error(f"Ошибка при загрузке модели: {e}")
         return None
 
-# Кнопка для загрузки модели
-load_button = st.button("Загрузить модель")
-
-if load_button:
-    model = load_model(use_gpu)  # Модель будет загружена только после нажатия кнопки
-else:
-    model = None
-    st.write("Модель не загружена. Нажмите кнопку, чтобы загрузить модель.")
-
+# Загружаем модель
+model = load_model()
 
 if model:
     st.write("Модель готова к использованию.")
@@ -64,9 +37,10 @@ else:
     st.write("Не удалось загрузить модель. Пожалуйста, проверьте путь и совместимость.")
 
 # Функция для предобработки изображения
-def preprocess_image(img_path, target_size=(256, 256)):
-    img = image.load_img(img_path, target_size=target_size)
-    img_array = image.img_to_array(img)
+def preprocess_image(img, target_size=(256, 256)):
+    if isinstance(img, Image.Image):  # Проверка, что img - это объект PIL
+        img = img.resize(target_size)  # Изменение размера
+    img_array = image.img_to_array(img)  # Преобразуем в массив
     img_array = np.expand_dims(img_array, axis=0)  # Добавляем размерность для батча
     img_array = img_array / 255.0  # Нормализация изображения
     return img_array
@@ -75,9 +49,8 @@ def preprocess_image(img_path, target_size=(256, 256)):
 def load_image_from_url(url, target_size=(256, 256)):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
-    img = img.resize(target_size)
-    img_array = np.array(img)
-    return img_array
+    img = img.resize(target_size)  # Изменяем размер для соответствия модели
+    return img
 
 # Функция для предсказания сегментации
 def predict_segmentation(img_array):
@@ -125,8 +98,8 @@ elif image_option == "Загрузить изображение по URL":
     if url:
         uploaded_files = None
         try:
-            img_array = load_image_from_url(url)
-            st.image(img_array, caption="Изображение из URL", use_container_width=True)
+img = load_image_from_url(url)  # Загружаем изображение по URL
+            st.image(img, caption="Изображение из URL", use_container_width=True)
         except Exception as e:
             st.error(f"Не удалось загрузить изображение. Ошибка: {e}")
 
@@ -135,13 +108,22 @@ if st.button("Предсказать"):
     if uploaded_files:
         start_time = time.time()
         for i, img in enumerate(images):
-            img_array = preprocess_image(img)
-            predicted_mask = predict_segmentation(img_array)
-            overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)
+            img_array = preprocess_image(img)  # Предобработка изображения
+            predicted_mask = predict_segmentation(img_array)  # Предсказание маски
+            overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски на изображение
             st.image(overlayed_img, caption=f"Изображение с маской {i+1}", use_container_width=True)
-            st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_widthh=True, clamp=True)
+            st.image(predicted_mask, caption=f"Предсказанная маска {i+1}", use_container_width=True, clamp=True)
         end_time = time.time()
         elapsed_time = end_time - start_time
         st.write(f"Время ответа модели: {elapsed_time:.2f} секунд")
+    elif url:
+        try:
+            img_array = preprocess_image(img)  # Предобработка изображения из URL
+            predicted_mask = predict_segmentation(img_array)  # Предсказание маски
+            overlayed_img = overlay_mask_on_image(np.array(img), predicted_mask)  # Наложение маски
+            st.image(overlayed_img, caption="Изображение с маской", use_container_width=True)
+            st.image(predicted_mask, caption="Предсказанная маска", use_container_width=True, clamp=True)
+        except Exception as e:
+            st.error(f"Ошибка при предсказании: {e}")
     else:
         st.warning("Пожалуйста, загрузите изображения.")

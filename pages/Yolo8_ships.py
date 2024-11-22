@@ -8,10 +8,10 @@ import time
 import matplotlib.pyplot as plt
 
 # Загрузка предобученной модели YOLO
-model = YOLO("/home/konstantin/Загрузки/yolo_8s_20epch_batch16/best(1).pt")  # Укажите путь к предобученной модели
+model = YOLO("models/Yolov8_ships.pt")  # Укажите путь к предобученной модели
 
 # Путь к директории со статистикой
-stats_dir = "/home/konstantin/Загрузки/yolo_8s_20epch_batch16"  # Укажите путь к вашей папке
+stats_dir = "images/Yolov8_ships"  # Укажите путь к вашей папке
 
 # Загрузка статистики на изображениях
 def load_statistics_images(directory):

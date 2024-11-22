@@ -63,12 +63,16 @@ def predict_segmentation(img_array):
     predicted_mask = prediction[0, :, :, 0]  # Предполагаем, что модель возвращает маску для одного канала
     return predicted_mask
 
-# Функция для наложения полупрозрачной маски на изображение
+# Функция для наложения маски с черным фоном на изображение
 def overlay_mask_on_image(img, mask):
-    mask = np.expand_dims(mask, axis=-1)  # Добавляем размерность
-    mask = np.repeat(mask, 3, axis=-1)  # Делаем маску трехканальной
-    overlay = np.where(mask > 0.5, mask * 0.5 + img * 0.5, img)  # Наложение маски
-    overlay = np.clip(overlay, 0, 1)  # Ограничиваем значения в диапазоне [0, 1]
+    # Убедимся, что маска и изображение имеют одинаковую размерность
+    mask = np.expand_dims(mask, axis=-1)  # Добавляем размерность для совместимости с изображением
+    mask = np.repeat(mask, 3, axis=-1)  # Преобразуем маску в трехканальную (для RGB)
+
+    # Копируем изображение и заменяем пиксели на черные там, где маска равна 0
+    overlay = np.copy(img)
+    overlay[mask == 0] = 0  # Закрашиваем пиксели на черные там, где маска равна 0
+    
     return overlay
 
 # Интерфейс Streamlit

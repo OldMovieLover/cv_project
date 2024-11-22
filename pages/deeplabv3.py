@@ -14,7 +14,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 st.write("GPU is", "available" if tf.config.list_physical_devices('GPU') else "NOT AVAILABLE")
 
 # Получаем абсолютный путь к модели, начиная от текущего скрипта
-model_path = os.path.join(os.path.dirname(__file__), '../models/deeplabv3.keras')
+#model_path = os.path.join(os.path.dirname(__file__), '../models/deeplabv3.keras')
+model_path = 'models/deeplabv3.keras'
 
 @register_keras_serializable()
 def iou_coef(y_true, y_pred, smooth=1):
@@ -85,8 +86,12 @@ st.header("Статистика модели")
 with st.expander("Показать статистику модели", expanded=False):
     st.write("F1 Score:")
     st.image("images/deeplabv3/F1_comparison.png", caption="График F1", use_container_width=True)
-    st.write("PR curve:")
-    st.image("images/deeplabv3/precision_comparison.png", caption="График PR curve", use_container_width=True)
+    st.write("Accuracy:")
+    st.image("images/deeplabv3/accuracy_comparison.png", caption="График PR curve", use_container_width=True)
+    st.write("Loss:")
+    st.image("images/deeplabv3/loss_comparison.png", caption="График PR curve", use_container_width=True)
+    st.wrtie("IoU:")
+    st.image("images/deeplabv3/iou_coef_comparison.png", caption="График PR curve", use_container_width=True)
     st.write("Precision")
     st.image("images/deeplabv3/precision_comparison.png", caption="График Precision", use_container_width=True)
     st.write("Recall:")
